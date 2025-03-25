@@ -1,4 +1,6 @@
-from setuptools import setup, find_packages
+from setuptools import setup
+import os
+from glob import glob
 
 package_name = 'misty_speech_therapy'
 
@@ -11,7 +13,7 @@ setup(
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
         ('share/' + package_name + '/launch',
-            ['launch/speech_therapy.launch.py']),
+            glob('launch/*.launch.py')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
