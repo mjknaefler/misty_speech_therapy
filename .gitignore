@@ -1,0 +1,23 @@
+# Python virtual environments
+misty_venv/
+venv/
+env/
+.venv/
+.env/
+*env/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# ROS 2 build files
+build/
+install/
+log/
+
+# Model files
+*.bin
+*.pt
+*.pth
+*.onnx
+*.gguf
