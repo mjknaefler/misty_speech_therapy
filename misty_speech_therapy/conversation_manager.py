@@ -23,6 +23,7 @@ class ConversationManager(Node):
         self.is_recording = False
         self.waiting_for_response = False
         self.introduction_complete = False
+        self.timer = None
         
         # Timer for starting conversation
         self.create_timer(5.0, self.start_conversation_callback)
@@ -34,7 +35,8 @@ class ConversationManager(Node):
         if not self.conversation_started:
             self.conversation_started = True
             self.introduction()
-            self.timer.cancel()  # Only call once
+            # We can't destroy the timer in Foxy, but we can prevent it from doing anything else
+            self.conversation_started = True  # This will prevent timer from triggering action again
     
     def introduction(self):
         """Have Misty introduce herself and ask for the child's name"""
@@ -53,13 +55,17 @@ class ConversationManager(Node):
         self.get_logger().info(f'Speaking: "{text}" (estimated {speak_time:.1f}s)')
         
         # Start recording after Misty finishes speaking
-        self.create_timer(speak_time, self.start_recording_timer_callback, oneshot=True)
+        # Store the timer so we can cancel it if needed
+        self.timer = self.create_timer(speak_time, self.start_recording_timer_callback)
     
     def start_recording_timer_callback(self):
         """Start recording after speaking is done"""
         if not self.is_recording and not self.waiting_for_response:
             self.start_recording()
             self.waiting_for_response = True
+        
+        # Cancel this timer so it only fires once
+        self.timer.cancel()
     
     def start_recording(self):
         """Send command to start recording"""
@@ -68,12 +74,15 @@ class ConversationManager(Node):
         self.start_recording_pub.publish(msg)
         
         # Set timeout for recording (15 seconds)
-        self.create_timer(15.0, self.recording_timeout_callback, oneshot=True)
+        self.recording_timer = self.create_timer(15.0, self.recording_timeout_callback)
     
     def recording_timeout_callback(self):
         """Stop recording if it's been going on too long"""
         if self.is_recording:
             self.stop_recording()
+        
+        # Cancel the timer
+        self.recording_timer.cancel()
     
     def stop_recording(self):
         """Send command to stop recording"""
