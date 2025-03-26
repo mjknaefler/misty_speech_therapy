@@ -71,6 +71,17 @@ class SpeechProcessor(Node):
             return
         
         try:
+            # Check if ffmpeg is available
+            import subprocess
+            try:
+                subprocess.run(['ffmpeg', '-version'], capture_output=True, check=True)
+            except (subprocess.SubprocessError, FileNotFoundError):
+                self.get_logger().error('ffmpeg not found. Please install it with: sudo apt install ffmpeg')
+                text_msg = String()
+                text_msg.data = "I need ffmpeg to understand you. Please install it."
+                self.text_pub.publish(text_msg)
+                return
+                
             # Transcribe using Whisper
             result = self.whisper_model.transcribe(audio_path)
             transcribed_text = result["text"].strip()
@@ -82,18 +93,20 @@ class SpeechProcessor(Node):
             text_msg.data = transcribed_text
             self.text_pub.publish(text_msg)
             
-            # Clean up temporary file
-            if os.path.exists(audio_path) and tempfile.gettempdir() in audio_path:
-                os.remove(audio_path)
-                self.get_logger().info(f'Removed temporary file: {audio_path}')
-                
         except Exception as e:
             self.get_logger().error(f'Error processing audio: {str(e)}')
             # Provide a fallback response
             text_msg = String()
             text_msg.data = "I heard you speaking but couldn't process what you said."
             self.text_pub.publish(text_msg)
-
+        
+        # Clean up temporary file regardless of success or failure
+        try:
+            if os.path.exists(audio_path) and tempfile.gettempdir() in audio_path:
+                os.remove(audio_path)
+                self.get_logger().info(f'Removed temporary file: {audio_path}')
+        except Exception as e:
+            self.get_logger().warn(f'Failed to clean up temp file: {str(e)}')
     def process_text_callback(self, msg):
         """Process text through LLM"""
         text = msg.data

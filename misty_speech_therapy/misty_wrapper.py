@@ -81,8 +81,12 @@ class MistyROS2Wrapper(Node):
     
     def start_recording(self):
         """Start audio recording on Misty"""
-        data = {"FileName": "speech_recording.wav", "MaximumDuration": 30000, "SilenceTimeout": 5000}
-        response = requests.post(f'{self.base_url}/audio/recording/start', json=data)
+        data = {
+            "FileName": "speech_recording.wav", 
+            "MaxLengthSeconds": 30,
+            "SilenceTimeout": 5
+        }
+        response = requests.post(f'{self.base_url}/audio/record/start', json=data)
         
         if response.status_code == 200:
             self.is_recording = True
@@ -98,13 +102,13 @@ class MistyROS2Wrapper(Node):
             requests.post(f'{self.base_url}/led', json=led_data)
         else:
             self.get_logger().error(f'Failed to start recording. Status code: {response.status_code}, Response: {response.text}')
-    
+        
     def stop_recording(self):
         """Stop audio recording and process the recorded audio"""
         if not self.is_recording:
             return
-            
-        response = requests.post(f'{self.base_url}/audio/recording/stop')
+                
+        response = requests.post(f'{self.base_url}/audio/record/stop')
         if response.status_code == 200:
             self.is_recording = False
             self.get_logger().info('Stopped recording audio on Misty')
@@ -122,10 +126,11 @@ class MistyROS2Wrapper(Node):
             self.get_recorded_audio("speech_recording.wav")
         else:
             self.get_logger().error(f'Failed to stop recording. Status code: {response.status_code}, Response: {response.text}')
-    
+
     def get_recorded_audio(self, filename):
         """Get the recorded audio file from Misty"""
-        response = requests.get(f'{self.base_url}/audio/recording?FileName={filename}&Base64=true')
+        # Use the endpoint that worked
+        response = requests.get(f'{self.base_url}/audio?FileName={filename}&Base64=true')
         
         if response.status_code == 200:
             audio_data = response.json().get("result", {}).get("base64", "")
